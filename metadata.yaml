@@ -1,0 +1,14 @@
+id: statusbot
+name: Status Bot
+version: 0.1.0
+description: Set and maintain your Matrix presence status message
+author: Mike
+homepage: https://github.com/mikeybob/statusbot
+entrypoint: statusbot.plugin:StatusPlugin
+language: python
+commands:
+  - name: setstatus
+    description: Set your presence status message
+    params:
+      - status:text
+
