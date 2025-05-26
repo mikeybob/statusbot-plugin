@@ -1,16 +1,26 @@
+# Plugin compatibility
 maubot: 0.5.1
+
+# Reverse‐domain plugin ID
 id: net.demonlab.statusbot
+
+# PEP 440 version
 version: 0.1.0
+
+# SPDX license
 license: MIT
 
+# Which modules (filenames without ".py") to include
 modules:
   - statusbot
 
+# "module/Class" where Maubot finds your Plugin subclass
 main_class: statusbot/StatusPlugin
 
+# No separate database needed
 database: false
 
+# PyPI dependencies at runtime
 dependencies:
   - maubot>=0.5.1
   - mautrix>=0.20.8
-
