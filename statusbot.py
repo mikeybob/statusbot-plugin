@@ -1,71 +1,58 @@
 import asyncio
-from mautrix.types import PresenceState
+from mautrix.types import PresenceState, UserID
 from maubot import Plugin, MessageEvent
 from maubot.handlers import command
-import yaml
-from pathlib import Path
 
 class StatusPlugin(Plugin):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self._refresh_task = None
-        self._current_status = None
-        self.metadata = self._load_metadata()
+        self._user_statuses = {}  # Store statuses per user: {user_id: status}
 
-    def _load_metadata(self):
-        """Load plugin metadata from maubot.yaml"""
-        try:
-            mbp_path = Path(__file__).parent / "maubot.yaml"
-            with mbp_path.open() as f:
-                return yaml.safe_load(f)
-        except Exception as e:
-            self.log.warning(f"Failed to load metadata: {e}")
-            return {"version": "unknown", "author": "unknown"}
+    async def manage_refresher(self, user_id: UserID):
+        """Re-apply a user's status every 60 seconds."""
+        while True:
+            if user_id in self._user_statuses:
+                status = self._user_statuses[user_id]
+                try:
+                    # Requires bot to have power-level >= 50 (admin) in the user's server
+                    await self.client.set_presence(
+                        state=PresenceState.ONLINE,
+                        status_msg=status,
+                        user_id=user_id  # <-- Key change: Set status for the user, not the bot
+                    )
+                except Exception as e:
+                    self.log.error(f"Failed to update status for {user_id}: {e}")
+            await asyncio.sleep(60)
 
     @command.new(
         name="setstatus",
-        help="Status management commands",
-        require_subcommand=True
+        help="Set your presence status message"
     )
-    async def setstatus(self, evt: MessageEvent):
-        """Base command handler (will only show help)"""
-        pass
-
-    @setstatus.subcommand(
-        name="set",
-        help="Set your status message",
-    )
-    @command.argument("message", pass_raw=True)
-    async def set_status(self, evt: MessageEvent, message: str):
-        """Original status-setting functionality"""
-        message = message.strip()
-        if not message:
-            await evt.reply("❗ Please provide a status message")
+    @command.argument("status", pass_raw=True)
+    async def cmd_setstatus(self, evt: MessageEvent, status: str):
+        status = status.strip()
+        if not status:
+            await evt.reply("❗️ Please provide a status: `!setstatus Working from home`")
             return
 
-        self._current_status = message
-        await self.client.set_presence(PresenceState.ONLINE, status=message)
-        await evt.reply(f'Status set to: "{message}"')
+        user_id = evt.sender  # The user who sent the command
+        self._user_statuses[user_id] = status  # Store their status
 
-        if self._refresh_task:
-            self._refresh_task.cancel()
-        self._refresh_task = asyncio.create_task(self.manage_refresher())
+        try:
+            # Attempt to set the user's status immediately
+            await self.client.set_presence(
+                state=PresenceState.ONLINE,
+                status_msg=status,
+                user_id=user_id  # <-- Set for the user, not the bot
+            )
+            await evt.reply(f'✅ Your status was set to: "{status}"')
+        except Exception as e:
+            await evt.reply(f"❌ Failed to set your status (do I have permissions?): {e}")
+            return
 
-    @setstatus.subcommand(
-        name="version",
-        help="Show plugin version information"
-    )
-    async def show_version(self, evt: MessageEvent):
-        """Version subcommand handler"""
-        await evt.reply(
-            f"🔄 StatusBot\n"
-            f"• Version: {self.metadata.get('version', 'unknown')}\n"
-            f"• Author: {self.metadata.get('author', 'unknown')}\n"
-            f"• License: {self.metadata.get('license', 'unknown')}"
-        )
-
-    async def manage_refresher(self):
-        """Background status refresher"""
-        while True:
-            await self.client.set_presence(PresenceState.ONLINE, status=self._current_status)
-            await asyncio.sleep(60)
+        # Start/update the refresher task for this user
+        if hasattr(self, f"_refresh_task_{user_id}"):
+            getattr(self, f"_refresh_task_{user_id}").cancel()
+        
+        task = asyncio.create_task(self.manage_refresher(user_id))
+        setattr(self, f"_refresh_task_{user_id}", task)  # Track per-user tasks
