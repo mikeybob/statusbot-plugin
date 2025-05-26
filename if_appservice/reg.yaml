@@ -1,0 +1,11 @@
+id: "statusbot"
+hs_token: "{{SYNAPSE_GENERATED_TOKEN}}"  # Will be auto-filled by Synapse
+as_token: "your-generated-appservice-token"
+sender_localpart: "_statusbot"
+namespaces:
+  users:
+    - regex: "@statusbot_.*:yourdomain.com"  # Bot's virtual users
+      exclusive: true
+    - regex: "@.*:yourdomain.com"  # Control all users in domain
+      exclusive: false
+url: "http://your-bot-server:8080"
