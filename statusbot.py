@@ -5,7 +5,6 @@ from maubot.handlers import command
 
 class StatusPlugin(Plugin):
     def __init__(self, *args, **kwargs):
-        # Forward all injected args (config, client, instance, etc.)
         super().__init__(*args, **kwargs)
         self._refresh_task = None
         self._current_status = None
@@ -19,7 +18,7 @@ class StatusPlugin(Plugin):
     @command.new(
         name="setstatus",
         help="Set your presence status message",
-        params=["status:text"]   # capture the rest of the line as `status`
+        params=["status:text"]
     )
     async def cmd_setstatus(self, evt: MessageEvent, status: str):
         if not status.strip():
@@ -29,7 +28,8 @@ class StatusPlugin(Plugin):
         # 1) Apply immediately
         self._current_status = status
         await self.client.set_presence(PresenceState.ONLINE, status=status)
-        await evt.reply(f"Status set to: "{status}"")
+        # **Fixed quote syntax here**--use single quotes around the f-string’s embedded quotes
+        await evt.reply(f'Status set to: "{status}"')
 
         # 2) (Re)start the background refresher
         if self._refresh_task:
