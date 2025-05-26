@@ -4,9 +4,9 @@ from maubot import Plugin, MessageEvent
 from maubot.handlers import command
 
 class StatusPlugin(Plugin):
-    def __init__(self, config, **kwargs):
-        # Accept Maubot’s additional kwargs (client, instance, etc.)
-        super().__init__(config, **kwargs)
+    def __init__(self, *args, **kwargs):
+        # Forward all args (config, client, instance, etc.) to the base Plugin
+        super().__init__(*args, **kwargs)
         self._refresh_task = None
         self._current_status = None
 
@@ -27,4 +27,3 @@ class StatusPlugin(Plugin):
         if self._refresh_task:
             self._refresh_task.cancel()
         self._refresh_task = asyncio.create_task(self.manage_refresher())
-
