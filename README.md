@@ -9,4 +9,5 @@ Set the presence of the calling user to the message submitted. Statusbot Keeps y
 `!setstatus <status message to display>`
 
 ## Requirements
-Requirement; the account hosting the bot must have admin rights in Synapse
+Requirement: The account hosting the bot must have admin rights in Synapse
+
